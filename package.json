@@ -1,0 +1,54 @@
+{
+  "name": "@egomobile/type-utils",
+  "version": "0.1.0",
+  "description": "TypeScript utilities and helpers.",
+  "main": "lib/index.js",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "files": [
+    "CHANGELOG.md",
+    "LICENSE",
+    "lib",
+    "!lib/**/*.map",
+    "README.md"
+  ],
+  "keywords": [
+    "node",
+    "js",
+    "ts",
+    "javascript",
+    "typescript",
+    "utils",
+    "helpers",
+    "functions",
+    "classes",
+    "ego"
+  ],
+  "scripts": {
+    "build": "del ./lib && tsc",
+    "docs:generate": "del ./docs && typedoc --out ./docs ./src",
+    "lint": "eslint -c .eslintrc.js --ext .ts src",
+    "lint:fix": "eslint --fix -c .eslintrc.js --ext .ts src",
+    "sandbox": "nodemon --watch './sandbox/index.ts' ./sandbox/index.ts --inspect=0.0.0.0:9229"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/egomobile/node-type-utils"
+  },
+  "author": "Next.e.GO Mobile SE, Aachen, Germany",
+  "license": "LGPL-3.0",
+  "dependencies": {
+    "typescript": "4.6.4"
+  },
+  "devDependencies": {
+    "@egomobile/tsconfig": "^5.0.0",
+    "@types/node": "16.18.12",
+    "del-cli": "5.0.0",
+    "eslint": "8.24.0",
+    "eslint-config-ego": "^0.17.1",
+    "nodemon": "2.0.20",
+    "ts-node": "10.9.1",
+    "typedoc": "0.23.25"
+  }
+}
