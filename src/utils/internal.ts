@@ -17,7 +17,7 @@ import fs from "node:fs";
 import path from "node:path";
 import typescript from "typescript";
 import { mergeJSDocComment } from ".";
-import type { JSDoc, JSDocTag } from "../types";
+import type { JSDoc, JSDocTag, MergedTypeMembers, TypeInformation, TypeMember } from "../types";
 import type { Nilable } from "../types/internal";
 
 export async function collectTypeDefintionFiles(dir: string, files: string[] = []): Promise<string[]> {
@@ -68,4 +68,52 @@ export function extractJSDocs(node: any): JSDoc[] {
     }
 
     return jsDocs;
+}
+
+export function getMergedMembers(
+    typeInfo: TypeInformation,
+    handledTypes: [TypeInformation, MergedTypeMembers][] = []
+): MergedTypeMembers {
+    const alreadyMergedMembers = handledTypes.find((item) => {
+        return item[0] === typeInfo;
+    })?.[1];
+    if (alreadyMergedMembers) {
+        // already handled
+        return alreadyMergedMembers;
+    }
+
+    const mergedMembers: MergedTypeMembers = {};
+
+    // add to list of handled types
+    handledTypes.push(
+        [typeInfo, mergedMembers]
+    );
+
+    const applyMembers = (members: TypeMember[]) => {
+        members.forEach((member) => {
+            mergedMembers[member.name] = member;
+        });
+    };
+
+    const uniqueBaseTypes = new Set<TypeInformation>(
+        typeInfo.heritages
+            .map((knownType) => {
+                return knownType.types;
+            })
+            .flat()  // flat to TypeHeritageType[]
+            .map((heritageType) => {
+                return heritageType.types;
+            })
+            .flat()  // flat to TypeInformation[]
+    );
+
+    // merge current members of current type with base
+    for (const baseType of uniqueBaseTypes) {
+        applyMembers(
+            Object.values(getMergedMembers(baseType, handledTypes))
+        );
+    }
+    applyMembers(typeInfo.members);
+
+    return mergedMembers;
 }

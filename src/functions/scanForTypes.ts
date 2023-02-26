@@ -16,9 +16,9 @@
 import fs from "node:fs";
 import typescript from "typescript";
 import url from "node:url";
-import { TypeKind, TypeInformation, TypeMember } from "../types";
+import { TypeKind, TypeInformation, TypeMember, TypeHeritage, TypeHeritageType } from "../types";
 import type { Nilable } from "../types/internal";
-import { collectTypeDefintionFiles, extractJSDocs } from "../utils/internal";
+import { collectTypeDefintionFiles, extractJSDocs, getMergedMembers } from "../utils/internal";
 import { isTypeDeclarationKind } from "../utils";
 
 /**
@@ -42,6 +42,21 @@ export type ScanForTypesResult = TypeInformation[];
 
 /**
  * Scans for types in a directory and its sub-directories.
+ *
+ * @example
+ * ```
+ * import { scanForTypes } from "@egomobile/type-utils"
+ *
+ * const dir = "<PATH-TO-THE-ROOT-DIRECTORY-TO-SCAN>"
+ *
+ * async function main() {
+ *   const types = await scanForTypes(dir)
+ *
+ *   console.log("Loaded types:", types)
+ * }
+ *
+ * main().catch(console.error)
+ * ```
  *
  * @param {string} dir The starting point.
  * @param {Nilable<IScanForTypesOptions>} [options] The custom options.
@@ -71,6 +86,8 @@ export async function scanForTypes(dir: string, options?: Nilable<IScanForTypesO
             let typeInfo: TypeInformation | undefined;
             if (ts.isInterfaceDeclaration(node)) {
                 typeInfo = {
+                    "getMergedMembers": undefined!,
+                    "heritages": [],
                     jsDoc,
                     "kind": TypeKind.Interface,
                     "members": [],
@@ -82,6 +99,8 @@ export async function scanForTypes(dir: string, options?: Nilable<IScanForTypesO
             }
             else if (ts.isEnumDeclaration(node)) {
                 typeInfo = {
+                    "getMergedMembers": undefined!,
+                    "heritages": [],
                     jsDoc,
                     "kind": TypeKind.Enum,
                     "members": [],
@@ -93,6 +112,8 @@ export async function scanForTypes(dir: string, options?: Nilable<IScanForTypesO
             }
             else if (ts.isClassDeclaration(node)) {
                 typeInfo = {
+                    "getMergedMembers": undefined!,
+                    "heritages": [],
                     jsDoc,
                     "kind": TypeKind.Class,
                     "members": [],
@@ -104,6 +125,8 @@ export async function scanForTypes(dir: string, options?: Nilable<IScanForTypesO
             }
             else if (ts.isTypeAliasDeclaration(node)) {
                 typeInfo = {
+                    "getMergedMembers": undefined!,
+                    "heritages": [],
                     jsDoc,
                     "kind": TypeKind.TypeAlias,
                     "members": [],
@@ -117,6 +140,10 @@ export async function scanForTypes(dir: string, options?: Nilable<IScanForTypesO
             if (!typeInfo) {
                 return;
             }
+
+            typeInfo.getMergedMembers = function () {
+                return getMergedMembers(this);
+            };
 
             result.push(typeInfo);
         });
@@ -143,6 +170,41 @@ export async function scanForTypes(dir: string, options?: Nilable<IScanForTypesO
                 };
 
                 typeInfo.members.push(typeMember);
+            }
+        }
+
+        const heritageClauses: Nilable<typescript.HeritageClause[]> = node.heritageClauses;
+        if (Array.isArray(heritageClauses)) {
+            for (const heritageClause of heritageClauses) {
+                const typeHeritage: TypeHeritage = {
+                    "node": heritageClause,
+                    "parent": typeInfo,
+                    "types": []
+                };
+
+                for (const type of heritageClause.types) {
+                    const typeHeritageType: TypeHeritageType = {
+                        "node": type,
+                        "parent": typeHeritage,
+                        "types": []
+                    };
+
+                    const escapedText = (type.expression as any).escapedText;
+                    if (typeof escapedText === "string") {
+                        const knownTypes = result.filter((otherTypeInfo) => {
+                            return otherTypeInfo !== typeInfo &&
+                                otherTypeInfo.name === escapedText;
+                        });
+
+                        typeHeritageType.types.push(
+                            ...knownTypes
+                        );
+                    }
+
+                    typeHeritage.types.push(typeHeritageType);
+                }
+
+                typeInfo.heritages.push(typeHeritage);
             }
         }
     }

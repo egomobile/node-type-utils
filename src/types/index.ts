@@ -24,7 +24,7 @@ export interface IJSDoc {
     /**
      * The normalized comment, if available.
      */
-    comment: string | null;
+    comment: Nullable<string>;
     /**
      * The underlying node.
      */
@@ -42,7 +42,7 @@ export interface IJSDocTag {
     /**
      * The normalized comment, if available.
      */
-    comment: string | null;
+    comment: Nullable<string>;
     /**
      * The name.
      */
@@ -54,9 +54,55 @@ export interface IJSDocTag {
 }
 
 /**
+ * A type heritage;
+ */
+export interface ITypeHeritage {
+    /**
+     * The underlying node.
+     */
+    node: typescript.HeritageClause;
+    /**
+     * The underlying parent type.
+     */
+    parent: TypeInformation;
+    /**
+     * The types.
+     */
+    types: TypeHeritageType[];
+}
+
+/**
+ * A type hertiage type.
+ */
+export interface ITypeHeritageType {
+    /**
+     * The underlying node.
+     */
+    node: typescript.ExpressionWithTypeArguments;
+    /**
+     * The underlying parent.
+     */
+    parent: TypeHeritage;
+    /**
+     * The known types.
+     */
+    types: TypeInformation[];
+}
+
+/**
  * Stores information about a type.
  */
 export interface ITypeInformation {
+    /**
+     * List of heritages.
+     */
+    heritages: TypeHeritage[];
+    /**
+     * Returns the list of merged type members.
+     *
+     * @returns {MergedTypeMembers} The merged list of type members.
+     */
+    getMergedMembers: () => MergedTypeMembers;
     /**
      * List of JSDoc items.
      */
@@ -108,7 +154,7 @@ export interface ITypeMember {
      */
     node: typescript.Node;
     /**
-     * The underlying partent type.
+     * The underlying parent type.
      */
     parent: TypeInformation;
 }
@@ -129,14 +175,29 @@ export type JSDocCommentValue = string | typescript.NodeArray<typescript.JSDocCo
 export type JSDocTag = IJSDocTag;
 
 /**
+ * Merged type members.
+ */
+export type MergedTypeMembers = Record<string, TypeMember>;
+
+/**
  * A possible value for a `typescript.SyntaxKind` that
  * represents a type declaration.
  */
 export type TypeDeclarationKind =
-    typescript.SyntaxKind.InterfaceDeclaration |
-    typescript.SyntaxKind.TypeAliasDeclaration |
+    typescript.SyntaxKind.ClassDeclaration |
     typescript.SyntaxKind.EnumDeclaration |
-    typescript.SyntaxKind.ClassDeclaration;
+    typescript.SyntaxKind.InterfaceDeclaration |
+    typescript.SyntaxKind.TypeAliasDeclaration;
+
+/**
+ * A possible value for a type hertiage.
+ */
+export type TypeHeritage = ITypeHeritage;
+
+/**
+ * A possible value for a type hertiage type.
+ */
+export type TypeHeritageType = ITypeHeritageType;
 
 /**
  * Possible types for a type information object.
